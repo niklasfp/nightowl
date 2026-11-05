@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NightOwl — keep the computer awake</title>
+<meta name="description" content="NightOwl is a small, cross-platform keep-the-computer-awake CLI. Holds a system sleep-inhibitor indefinitely, for a duration, or while a command runs.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="container hero-inner">
+    <svg class="mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="markTitle">
+      <title id="markTitle">NightOwl mark: an owl perched in front of a crescent moon</title>
+      <mask id="crescent-cut">
+        <rect x="0" y="0" width="100" height="100" fill="#fff"/>
+        <circle cx="76" cy="26" r="20" fill="#000"/>
+      </mask>
+      <circle cx="66" cy="34" r="24" fill="#f5b942" mask="url(#crescent-cut)"/>
+      <g fill="#131a2e" stroke="#f5b942" stroke-width="2.5" stroke-linejoin="round">
+        <path d="M20 58 L30 34 L38 60 Z"/>
+        <path d="M64 58 L56 34 L48 60 Z"/>
+        <ellipse cx="42" cy="66" rx="30" ry="27"/>
+      </g>
+      <circle cx="30" cy="62" r="10" fill="#f5b942"/>
+      <circle cx="54" cy="62" r="10" fill="#f5b942"/>
+      <circle cx="30" cy="62" r="4" fill="#131a2e"/>
+      <circle cx="54" cy="62" r="4" fill="#131a2e"/>
+      <path d="M42 70 L37 80 L47 80 Z" fill="#f5b942"/>
+    </svg>
+
+    <h1>NightOwl</h1>
+    <p class="tagline">
+      A small, cross-platform "keep the computer awake" CLI. NightOwl holds a system
+      sleep-inhibitor for as long as you ask — indefinitely, for a fixed duration, or while a
+      command runs — then releases it and exits. No daemon, no tray, no config files.
+    </p>
+
+    <div class="hero-install">
+      <div class="terminal">
+        <div class="terminal-titlebar terminal-titlebar-tabs">
+          <div class="terminal-dots">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+          </div>
+          <div class="terminal-tabs" role="tablist" aria-label="Install command by platform">
+            <button class="terminal-tab active" type="button" role="tab" id="install-tab-unix"
+              aria-selected="true" aria-controls="install-pane-unix">macOS / Linux</button>
+            <button class="terminal-tab" type="button" role="tab" id="install-tab-windows"
+              aria-selected="false" aria-controls="install-pane-windows">Windows</button>
+          </div>
+        </div>
+        <div class="code-wrap tab-pane" id="install-pane-unix" role="tabpanel" aria-labelledby="install-tab-unix">
+          <pre><code>curl -fsSL https://raw.githubusercontent.com/niklasfp/nightowl/main/install.sh | sh</code></pre>
+          <button class="copy-btn" type="button">Copy</button>
+        </div>
+        <div class="code-wrap tab-pane" id="install-pane-windows" role="tabpanel" aria-labelledby="install-tab-windows" hidden>
+          <pre><code>irm https://raw.githubusercontent.com/niklasfp/nightowl/main/install.ps1 | iex</code></pre>
+          <button class="copy-btn" type="button">Copy</button>
+        </div>
+      </div>
+      <p class="tagline" style="margin-top: 0.6rem; font-size: 0.9rem;">
+        <a href="#install">See all install options</a>, including Homebrew and winget.
+      </p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="install" class="container">
+    <h2 class="section-title">Install</h2>
+
+    <p class="tagline" style="margin-bottom: 1.25rem;">
+      Install scripts require and verify each release's <code>SHA256SUMS.txt</code>. A missing,
+      malformed, or mismatched checksum stops installation.
+    </p>
+
+    <div class="install-block">
+      <h3>Install script (macOS/Linux)</h3>
+      <p>Installs to <code>~/.local/bin</code>, override with <code>--install-dir</code>:</p>
+      <div class="terminal">
+        <div class="terminal-titlebar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+        </div>
+        <div class="code-wrap">
+          <pre><code>curl -fsSL https://raw.githubusercontent.com/niklasfp/nightowl/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/niklasfp/nightowl/main/install.sh | sh -s -- --install-dir ~/bin</code></pre>
+          <button class="copy-btn" type="button">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="install-block">
+      <h3>Install script (Windows PowerShell)</h3>
+      <p>Installs to <code>%LOCALAPPDATA%\Programs\NightOwl</code> and adds it to your user
+      PATH:</p>
+      <div class="terminal">
+        <div class="terminal-titlebar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+        </div>
+        <div class="code-wrap">
+          <pre><code>irm https://raw.githubusercontent.com/niklasfp/nightowl/main/install.ps1 | iex</code></pre>
+          <button class="copy-btn" type="button">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="install-block">
+      <h3>Homebrew</h3>
+      <p>macOS (Apple Silicon), Linux:</p>
+      <div class="terminal">
+        <div class="terminal-titlebar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+        </div>
+        <div class="code-wrap">
+          <pre><code>brew tap niklasfp/nightowl https://github.com/niklasfp/nightowl
+brew install nightowl</code></pre>
+          <button class="copy-btn" type="button">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="install-block">
+      <h3>winget</h3>
+      <p>Windows — available once the first stable release is accepted into
+      <a href="https://github.com/microsoft/winget-pkgs">winget-pkgs</a>:</p>
+      <div class="terminal">
+        <div class="terminal-titlebar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+        </div>
+        <div class="code-wrap">
+          <pre><code>winget install niklasfp.NightOwl</code></pre>
+          <button class="copy-btn" type="button">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="install-block" id="downloads">
+      <h3>Manual download</h3>
+      <p>No runtime needed — download the archive for your platform from the
+      <a href="https://github.com/niklasfp/nightowl/releases">GitHub Releases</a> page, unpack,
+      and run <code>nightowl</code>:</p>
+      <div class="button-row">
+        <a class="button" href="https://github.com/niklasfp/nightowl/releases/latest/download/nightowl-osx-arm64.tar.gz">macOS <span class="rid">osx-arm64</span></a>
+        <a class="button" href="https://github.com/niklasfp/nightowl/releases/latest/download/nightowl-linux-x64.tar.gz">Linux <span class="rid">linux-x64</span></a>
+        <a class="button" href="https://github.com/niklasfp/nightowl/releases/latest/download/nightowl-linux-arm64.tar.gz">Linux <span class="rid">linux-arm64</span></a>
+        <a class="button" href="https://github.com/niklasfp/nightowl/releases/latest/download/nightowl-win-x64.zip">Windows <span class="rid">win-x64</span></a>
+        <a class="button" href="https://github.com/niklasfp/nightowl/releases/latest/download/nightowl-win-arm64.zip">Windows <span class="rid">win-arm64</span></a>
+      </div>
+    </div>
+
+    <div class="install-block">
+      <h3>Portable .NET tool (alternative)</h3>
+      <p>If you already use the .NET SDK, NightOwl is also published as a dotnet tool on
+      <strong>GitHub Packages</strong>. Requires the .NET 10 runtime; add the feed once
+      (authenticate with a GitHub token that has <code>read:packages</code>), then install:</p>
+      <div class="terminal">
+        <div class="terminal-titlebar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+        </div>
+        <div class="code-wrap">
+          <pre><code>dotnet nuget add source "https://nuget.pkg.github.com/niklasfp/index.json" \
+  --name github --username &lt;you&gt; --password &lt;GH_TOKEN&gt; --store-password-in-clear-text
+dotnet tool install -g NightOwl --add-source github
+nightowl --version</code></pre>
+          <button class="copy-btn" type="button">Copy</button>
+        </div>
+      </div>
+      <p class="tagline" style="margin-top: 0.75rem; font-size: 0.9rem;">
+        Publishing to <a href="https://www.nuget.org">nuget.org</a> is planned —
+        once live, this
+        becomes a single <code>dotnet tool install -g NightOwl</code> with no feed setup.
+      </p>
+    </div>
+
+    <div class="install-block">
+      <h3>Update</h3>
+      <p>Re-run the same install command for the method you used:</p>
+      <ol>
+        <li><strong>Install script (macOS/Linux)</strong> — re-run
+          <code>curl -fsSL https://raw.githubusercontent.com/niklasfp/nightowl/main/install.sh | sh</code>
+          (fetches the latest release and replaces the binary in place; pass your
+          <code>--install-dir</code> again if you overrode it).</li>
+        <li><strong>Install script (Windows)</strong> — re-run
+          <code>irm https://raw.githubusercontent.com/niklasfp/nightowl/main/install.ps1 | iex</code>.</li>
+        <li><strong>Homebrew</strong> — <code>brew update &amp;&amp; brew upgrade nightowl</code>.</li>
+        <li><strong>winget</strong> — <code>winget upgrade niklasfp.NightOwl</code>.</li>
+        <li><strong>Manual download</strong> — download the new archive and replace the
+          unpacked binary.</li>
+        <li><strong>Portable .NET tool</strong> —
+          <code>dotnet tool update -g NightOwl --add-source github</code>.</li>
+      </ol>
+    </div>
+
+    <div class="install-block">
+      <h3>Uninstall</h3>
+      <ol>
+        <li><strong>Install script (macOS/Linux)</strong> —
+          <code>curl -fsSL https://raw.githubusercontent.com/niklasfp/nightowl/main/install.sh | sh -s -- --uninstall</code>
+          (or just <code>rm ~/.local/bin/nightowl</code>; use your <code>--install-dir</code>
+          if you overrode it).</li>
+        <li><strong>Install script (Windows)</strong> —
+          <code>&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/niklasfp/nightowl/main/install.ps1))) -Uninstall</code>
+          (also removes the PATH entry it added).</li>
+        <li><strong>Homebrew</strong> — <code>brew uninstall nightowl</code> (optionally
+          <code>brew untap niklasfp/nightowl</code>).</li>
+        <li><strong>winget</strong> — <code>winget uninstall niklasfp.NightOwl</code>.</li>
+        <li><strong>Manual download</strong> — delete the unpacked <code>nightowl</code> binary
+          (and revert any PATH edit you made yourself).</li>
+        <li><strong>Portable .NET tool</strong> — <code>dotnet tool uninstall -g NightOwl</code>.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="usage" class="container">
+    <h2 class="section-title">Usage</h2>
+
+    <div class="terminal" style="margin-bottom: 1.5rem;">
+      <div class="terminal-titlebar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+      </div>
+      <div class="code-wrap">
+        <pre><code>nightowl [options] [-- &lt;command&gt; [args...]]
+
+  (no args)              Keep the system awake until Ctrl+C
+  -t, --for &lt;duration&gt;   Keep awake for a duration, then exit (e.g. 30s, 90m, 2h, 1h30m)
+  -w, --pid &lt;pid&gt;        Keep awake while process &lt;pid&gt; runs; exit 0 when it does
+  -- &lt;command&gt; [args]    Keep awake while &lt;command&gt; runs; exit with its exit code
+  -d, --display          Also keep the display awake (not just the system)
+  -s, --block-sleep      Block system sleep as strongly as the platform allows
+  -v, --verbose          Log which backend/assertion is used
+  -q, --quiet            Don't print the status line on start
+  -h, --help             Show help
+      --version          Show version</code></pre>
+        <button class="copy-btn" type="button">Copy</button>
+      </div>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-titlebar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+      </div>
+      <div class="code-wrap">
+        <pre><code>nightowl                       # stay awake until you press Ctrl+C
+nightowl --for 90m             # stay awake for 90 minutes, then exit
+nightowl --display --for 1h    # keep the screen on for an hour too
+nightowl -- ./long-build.sh    # stay awake while the build runs; exit with its code
+nightowl --block-sleep --for 2h  # also block system sleep (not just idle), for 2 hours
+nightowl --pid 4821            # stay awake while an existing process (PID 4821) runs</code></pre>
+        <button class="copy-btn" type="button">Copy</button>
+      </div>
+    </div>
+
+    <p class="tagline" style="margin-top: 1.25rem;">
+      <code>--for</code>, <code>--pid</code>, and a wrapped <code>-- &lt;command&gt;</code> are mutually
+      exclusive, as are <code>--quiet</code> and <code>--verbose</code>. Unknown options exit with code 2.
+    </p>
+
+    <p class="tagline">
+      <code>--pid</code> is the <code>caffeinate -w</code> equivalent: it holds the inhibitor while an
+      existing process runs. It fails fast — a distinct error, non-zero exit, no lock taken — if the
+      PID doesn't exist at startup, and identity is only checked then: a PID recycled by the OS
+      afterward is indistinguishable from the original.
+    </p>
+  </section>
+
+  <section id="platforms" class="container">
+    <h2 class="section-title">Platforms</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Platform</th>
+          <th>Mechanism</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Windows</td>
+          <td><code>PowerCreateRequest</code>/<code>PowerSetRequest(SystemRequired [+ DisplayRequired] [+ ExecutionRequired])</code> with a <code>REASON_CONTEXT</code> reason string</td>
+        </tr>
+        <tr>
+          <td>macOS</td>
+          <td>IOKit power assertions — <code>IOPMAssertionCreateWithName(PreventUserIdleSystemSleep [+ PreventUserIdleDisplaySleep] [+ PreventSystemSleep])</code></td>
+        </tr>
+        <tr>
+          <td>Linux</td>
+          <td>logind <code>Inhibit</code> fd over D-Bus via <code>libsystemd</code> (falls back to <code>systemd-inhibit … cat</code>, tied to NightOwl's lifetime)</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/niklasfp/nightowl">github.com/niklasfp/nightowl</a>
+      &nbsp;·&nbsp; MIT licensed
+    </p>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll(".copy-btn").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var code = btn.previousElementSibling.textContent;
+    navigator.clipboard.writeText(code).then(function () {
+      var original = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(function () {
+        btn.textContent = original;
+      }, 1500);
+    });
+  });
+});
+
+document.querySelectorAll(".terminal-tabs").forEach(function (tabList) {
+  var tabs = Array.prototype.slice.call(tabList.querySelectorAll(".terminal-tab"));
+  var terminal = tabList.closest(".terminal");
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      tabs.forEach(function (other) {
+        var selected = other === tab;
+        other.classList.toggle("active", selected);
+        other.setAttribute("aria-selected", selected ? "true" : "false");
+      });
+      terminal.querySelectorAll(".tab-pane").forEach(function (pane) {
+        pane.hidden = pane.id !== tab.getAttribute("aria-controls");
+      });
+    });
+  });
+});
+</script>
+
+</body>
+</html>

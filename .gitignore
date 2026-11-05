@@ -1,0 +1,32 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+nupkg/
+/artifacts/
+[Tt]est[Rr]esults/
+*.coverage
+coverage.cobertura.xml
+
+# Pages artifact staging (pages.yml; only appears if the staging step is reproduced locally)
+/_site_out/
+
+# Claude Code worktrees (each session gets its own)
+/.worktrees/
+/.claude/worktrees/
+
+# Claude local settings (including the harness's atomic-write temp files)
+.claude/settings.local.json*
+
+# Session logs
+/logs/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes

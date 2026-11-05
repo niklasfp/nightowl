@@ -1,0 +1,329 @@
+name: Release
+
+# Two ways to cut a real release, both supported:
+#   1. `git tag v0.1.0 && git push --tags` — fires `push.tags`.
+#   2. Publish a GitHub Release in the UI — fires `release.published`. Publishing with a NEW tag
+#      creates that tag, which *also* fires `push.tags` (~2s apart, observed), so one tag can
+#      trigger two runs; publishing against an EXISTING tag fires only `release.published`,
+#      which is why both triggers exist. On BOTH events `github.ref` is the tag ref
+#      (`refs/tags/<tag>` — per GitHub's docs the `release` event carries the tag, not the
+#      default branch), so the plain tag-based guards below cover both triggers. The "Create or
+#      update GitHub Release" step is idempotent (create if missing, else attach assets), so a
+#      duplicate run is harmless — previously a pre-existing UI release made an unconditional
+#      `gh release create` fail with "already exists" before any assets were attached
+#      (v0.1.0-beta.2).
+# The `concurrency` group below serializes same-tag runs instead of racing them. The build matrix
+# also runs on workflow_dispatch for verification — the steps that create/update the GitHub
+# Release and push the tool to GitHub Packages are guarded to tag refs only (see `if:` below),
+# so a workflow_dispatch run from a branch just builds, archives, and uploads artifacts.
+on:
+  push:
+    tags: ['v*']
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # Native AOT can't cross-OS, so each RID builds on its matching OS. Cross-arch (x64<->arm64)
+  # works on the same OS with the right toolchain: Windows needs the VS ARM64 C++ tools (present
+  # on the runner), Linux arm64 needs a cross-toolchain (installed below). macOS only builds
+  # osx-arm64, which is native on the arm64 macos-latest runner.
+  aot:
+    name: aot ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, rid: win-x64 }
+          - { os: windows-latest, rid: win-arm64 }
+          - { os: macos-latest,   rid: osx-arm64 }
+          - { os: ubuntu-latest,  rid: linux-x64 }
+          - { os: ubuntu-latest,  rid: linux-arm64 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      # All RIDs except linux-arm64 build natively or with same-OS cross-arch toolchains
+      # (osx-arm64 is native on the arm64 runner; the Windows runner has the VS ARM64 C++ tools).
+      # Binaries are version-stamped from the tag (v1.2.3 -> 1.2.3) so `nightowl --version`
+      # matches the release; non-tag runs keep the csproj default. GITHUB_REF is the tag ref on
+      # both tag pushes and `release` events (see header comment).
+      - name: Publish (AOT)
+        if: matrix.rid != 'linux-arm64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=""
+          [[ "$GITHUB_REF" == refs/tags/v* ]] && version="-p:Version=${GITHUB_REF_NAME#v}"
+          dotnet publish src/NightOwl -r ${{ matrix.rid }} -c Release -p:PublishAot=true -o publish/${{ matrix.rid }} $version
+
+      # linux-arm64 can't AOT-cross on a free x64 runner (free GitHub arm64 runners are
+      # public-repos only). Build it *natively* inside an emulated arm64 container instead —
+      # no cross-toolchain, just clang from the container's own arm64 packages.
+      # QEMU is required: the bare x64 runner has no qemu-aarch64 binfmt handler, so without
+      # this step `docker run --platform linux/arm64` fails with "exec format error" (verified).
+      - name: Set up QEMU (linux-arm64)
+        if: matrix.rid == 'linux-arm64'
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm64
+
+      # The `-aot` SDK image ships the Native AOT toolchain (clang + zlib) preinstalled —
+      # Microsoft's recommended image for building Linux AOT tools — so no apt step is needed.
+      - name: Publish (AOT, emulated arm64 container)
+        if: matrix.rid == 'linux-arm64'
+        run: |
+          set -euxo pipefail
+          version=""
+          [[ "$GITHUB_REF" == refs/tags/v* ]] && version="-p:Version=${GITHUB_REF_NAME#v}"
+          docker run --rm --platform linux/arm64 -v "$PWD":/src -w /src \
+            mcr.microsoft.com/dotnet/sdk:10.0-noble-aot \
+            bash -c "dotnet publish src/NightOwl -r linux-arm64 -c Release -p:PublishAot=true -o publish/linux-arm64 $version && \
+                     chmod +x publish/linux-arm64/nightowl"
+          sudo chown -R "$(id -u):$(id -g)" publish/linux-arm64
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd publish/${{ matrix.rid }}
+          if [[ "${{ matrix.rid }}" == win-* ]]; then
+            7z a "../../nightowl-${{ matrix.rid }}.zip" nightowl.exe
+            inner=$(7z l -slt "../../nightowl-${{ matrix.rid }}.zip" | awk '/^Path = /{print substr($0,8)}' | tail -n +2)
+            [[ "$inner" == nightowl.exe ]]
+          else
+            chmod +x nightowl
+            COPYFILE_DISABLE=1 tar -czf "../../nightowl-${{ matrix.rid }}.tar.gz" nightowl
+            [[ "$(tar -tzf "../../nightowl-${{ matrix.rid }}.tar.gz")" == nightowl ]]
+          fi
+
+      - name: Upload build artifact (verification)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nightowl-${{ matrix.rid }}
+          path: |
+            nightowl-${{ matrix.rid }}.zip
+            nightowl-${{ matrix.rid }}.tar.gz
+          if-no-files-found: error
+
+  # Portable .NET tool: pack the IL nupkg and push to GitHub Packages.
+  tool:
+    name: pack & push tool
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Pack
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # On a tag (pushed or via a published Release — GITHUB_REF is the tag ref either way),
+          # the package version comes from the tag (v1.2.3 -> 1.2.3); otherwise the csproj default.
+          version=""
+          [[ "$GITHUB_REF" == refs/tags/v* ]] && version="-p:Version=${GITHUB_REF_NAME#v}"
+          dotnet pack src/NightOwl -c Release -o nupkg $version
+
+      - name: Upload nupkg artifact (verification)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nightowl-nupkg
+          path: nupkg/*.nupkg
+          if-no-files-found: error
+
+      - name: Push to GitHub Packages
+        if: startsWith(github.ref, 'refs/tags/')
+        run: >
+          dotnet nuget push "nupkg/*.nupkg"
+          --api-key "${{ secrets.GITHUB_TOKEN }}"
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          --skip-duplicate
+
+      # nuget.org is the eventual home for the tool (see #44); the GitHub Packages push above
+      # stays until the cutover in #45. Secrets can't be tested directly in `if:`, so this
+      # guards at runtime like the `winget` job below: the NUGET_API_KEY secret doesn't exist
+      # yet, so this must no-op cleanly instead of failing every tagged release. Prereleases are
+      # pushed too (unlike winget) since nuget.org natively supports prerelease versions.
+      - name: Push to nuget.org
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo 'NUGET_API_KEY secret not set; skipping nuget.org push.'
+            exit 0
+          fi
+          dotnet nuget push "nupkg/*.nupkg" \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key "$NUGET_API_KEY" \
+            --skip-duplicate
+
+  # Single publisher: collect every build's artifacts and create/update the GitHub Release ONCE.
+  # Doing this in one job (instead of each matrix leg attaching itself) avoids concurrent jobs
+  # racing to create the same release.
+  release:
+    name: publish release
+    needs: [aot, tool]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          merge-multiple: true
+
+      # One checksum file over every asset — consumed by the install scripts, the Homebrew
+      # formula, and the winget manifests (via the packaging job).
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      # Idempotent: if a Release for this tag already exists — e.g. drafted/published via the
+      # GitHub UI, which creates the tag (and thus this run) but attaches no assets — attach the
+      # build assets to it instead of failing on "already exists". Otherwise create it fresh, as
+      # a `git tag && git push` with no pre-existing Release does. A hyphenated tag (e.g.
+      # v0.1.0-beta.1) is published as a prerelease.
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ls -l dist
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists — attaching build assets to it."
+            gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            prerelease=""
+            [[ "$GITHUB_REF_NAME" == *-* ]] && prerelease="--prerelease"
+            gh release create "$GITHUB_REF_NAME" dist/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$GITHUB_REF_NAME" \
+              --notes "Automated release for $GITHUB_REF_NAME." \
+              $prerelease
+          fi
+
+  # Regenerate Formula/nightowl.rb + packaging/winget/*.yaml from the released checksums and
+  # commit them back to main, so the packaging manifests always match the newest release. Purely
+  # in-repo (no tap repo, no winget-pkgs, no external credentials) so it runs the same whether or
+  # not Homebrew/winget distribution is actually set up yet.
+  packaging:
+    name: update packaging manifests
+    needs: [release]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      - name: Regenerate manifests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" -p SHA256SUMS.txt -D /tmp/release
+          node scripts/update-packaging.ts "${GITHUB_REF_NAME#v}" /tmp/release/SHA256SUMS.txt
+
+      # Direct push first; when main is branch-protected (rejects the bot push), fall back to a
+      # PR so the release still succeeds and the manifest update lands via review instead.
+      - name: Commit to main (or PR when protected)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula packaging
+          if git diff --cached --quiet; then
+            echo "No packaging changes."
+            exit 0
+          fi
+          git commit -m "chore: update packaging manifests for ${GITHUB_REF_NAME}"
+          # Rebase onto whatever moved main since checkout — this job is the only writer of
+          # Formula/packaging, so the rebase cannot conflict; it just avoids a
+          # non-fast-forward push failure if an unrelated commit landed on main meanwhile.
+          git pull --rebase origin main
+          if git push origin HEAD:main; then
+            echo "Pushed packaging manifests to main."
+            exit 0
+          fi
+          branch="bot/packaging-${GITHUB_REF_NAME}"
+          echo "Direct push to main rejected (branch protection?) — opening a PR from $branch."
+          git push -f origin "HEAD:refs/heads/$branch"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+            --title "chore: update packaging manifests for ${GITHUB_REF_NAME}" \
+            --body "Automated manifest regeneration for ${GITHUB_REF_NAME}. Direct push to main was rejected (branch protection), so this PR was opened instead." \
+            --label area:packaging --label type:chore \
+            || echo "PR creation failed — one may already exist for $branch."
+
+  # Submit stable releases to microsoft/winget-pkgs. Skipped for prerelease (hyphenated) tags
+  # and — always, today — for the missing WINGET_TOKEN secret: the winget-pkgs submission
+  # (and the Homebrew tap) are still WIP (see docs/packaging-decision-log.md D2/D3), so this job
+  # must no-op cleanly rather than fail, and it does not gate `release` or `packaging` above (only
+  # `needs: [release]`, nothing needs this). The FIRST submission must be done manually with
+  # `wingetcreate new` — this job only handles version updates once the package exists upstream.
+  winget:
+    name: submit to winget
+    needs: [release]
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+    # No GITHUB_TOKEN is used here (only WINGET_TOKEN); drop the inherited write scopes.
+    permissions: {}
+    steps:
+      - name: Update winget-pkgs via wingetcreate
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          if (-not $env:WINGET_TOKEN) {
+            Write-Host 'WINGET_TOKEN secret not set; skipping winget submission.'
+            exit 0
+          }
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $base = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:GITHUB_REF_NAME"
+          # Pin an immutable GitHub release asset and verify SHA-256 before running it.
+          # aka.ms/wingetcreate is a floating URL (D3). To bump: copy version + bare hex from
+          # microsoft/winget-create (strip a leading sha256: prefix) into both values below.
+          $wingetcreateVersion = '1.12.13.0'
+          $wingetcreateSha256 = '24042bd37915805615e6cf969ac57c6439124c3fe85823327f5f3fb24bd9ffea'
+          $wingetcreateUrl = "https://github.com/microsoft/winget-create/releases/download/v$wingetcreateVersion/wingetcreate.exe"
+          Invoke-WebRequest $wingetcreateUrl -OutFile wingetcreate.exe
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath wingetcreate.exe).Hash.ToLowerInvariant()
+          $expected = $wingetcreateSha256.ToLowerInvariant() -replace '^sha256:', ''
+          if ($actual -ne $expected) {
+            throw "wingetcreate.exe checksum mismatch (expected $expected, got $actual)."
+          }
+          .\wingetcreate.exe update niklasfp.NightOwl --version $version `
+            --urls "$base/nightowl-win-x64.zip" "$base/nightowl-win-arm64.zip" `
+            --submit --token $env:WINGET_TOKEN

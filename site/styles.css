@@ -1,0 +1,359 @@
+/* NightOwl website — dark night-sky theme, light-scheme fallback.
+   No external resources: system fonts only, no web fonts/CDNs/analytics. */
+
+:root {
+  --bg: #0b0e1a;
+  --bg-elevated: #131a2e;
+  --bg-terminal: #0d1120;
+  --text: #e8e6f0;
+  --text-muted: #a7a9c0;
+  --accent: #f5b942;
+  --accent-contrast: #0b0e1a;
+  --border: #262c47;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --star-color: rgba(232, 230, 240, 0.65);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f7fb;
+    --bg-elevated: #ffffff;
+    --bg-terminal: #14172a;
+    --text: #181c2e;
+    --text-muted: #4b4f6b;
+    --accent: #96650a;
+    --accent-contrast: #ffffff;
+    --border: #dcdce8;
+    --shadow: 0 12px 32px rgba(24, 28, 46, 0.12);
+    --star-color: rgba(24, 28, 46, 0.12);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark light;
+}
+
+body {
+  margin: 0;
+  min-width: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+code,
+pre,
+kbd {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+}
+
+a {
+  color: var(--accent);
+}
+
+.container {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+section {
+  padding: 3rem 0;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+}
+
+/* Hero */
+
+.hero {
+  position: relative;
+  padding: 4rem 0 3rem;
+  background-image: radial-gradient(2px 2px at 10% 20%, var(--star-color), transparent),
+    radial-gradient(1.5px 1.5px at 25% 60%, var(--star-color), transparent),
+    radial-gradient(2px 2px at 40% 15%, var(--star-color), transparent),
+    radial-gradient(1.5px 1.5px at 55% 75%, var(--star-color), transparent),
+    radial-gradient(2px 2px at 70% 35%, var(--star-color), transparent),
+    radial-gradient(1.5px 1.5px at 85% 55%, var(--star-color), transparent),
+    radial-gradient(2px 2px at 92% 20%, var(--star-color), transparent),
+    radial-gradient(1.5px 1.5px at 15% 85%, var(--star-color), transparent),
+    radial-gradient(1.5px 1.5px at 65% 90%, var(--star-color), transparent);
+  background-repeat: no-repeat;
+}
+
+.hero-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+}
+
+.mark {
+  width: 96px;
+  height: 96px;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.tagline {
+  max-width: 42rem;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.hero-install {
+  width: 100%;
+  max-width: 34rem;
+  margin-top: 1rem;
+}
+
+/* Buttons */
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.button:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.button.primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.rid {
+  color: inherit;
+  opacity: 0.65;
+  font-size: 0.8rem;
+}
+
+/* Section headings */
+
+.section-title {
+  font-size: 1.6rem;
+  margin: 0 0 1.5rem;
+}
+
+/* Terminal-styled code blocks */
+
+.terminal {
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.terminal-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.8rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--border);
+}
+
+.terminal-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.terminal-dot.red {
+  background: #e0605a;
+}
+
+.terminal-dot.yellow {
+  background: #e0b95a;
+}
+
+.terminal-dot.green {
+  background: #5ac088;
+}
+
+.terminal-titlebar-tabs {
+  justify-content: space-between;
+}
+
+.terminal-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.terminal-tabs {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.terminal-tab {
+  padding: 0.25rem 0.65rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.terminal-tab:hover {
+  color: var(--text);
+}
+
+.terminal-tab.active {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.terminal pre {
+  margin: 0;
+  /* extra right padding keeps code clear of the overlaid copy button */
+  padding: 1rem 4.75rem 1rem 1.2rem;
+  overflow-x: auto;
+  color: #e8e6f0;
+  font-size: 0.88rem;
+  position: relative;
+}
+
+.terminal code {
+  white-space: pre;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.code-wrap {
+  position: relative;
+}
+
+/* Install section */
+
+.install-block {
+  margin-bottom: 1.5rem;
+}
+
+.install-block h3 {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+}
+
+/* Platform table */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Footer */
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+footer a {
+  color: var(--text-muted);
+}
+
+footer a:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 600px) {
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  section {
+    padding: 2rem 0;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+}

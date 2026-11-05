@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    assignees:
+      - niklasfp
+    groups:
+      microsoft:
+        patterns:
+          - "Microsoft.*"
+      test:
+        patterns:
+          - "TUnit*"
+          - "Shouldly*"
+          - "coverlet*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    assignees:
+      - niklasfp
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+    assignees:
+      - niklasfp

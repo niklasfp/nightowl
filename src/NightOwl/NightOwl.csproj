@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>nightowl</AssemblyName>
+    <RootNamespace>NightOwl</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Tool packaging">
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>nightowl</ToolCommandName>
+    <PackageId>NightOwl</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Niklas Petersen</Authors>
+    <Description>Cross-platform "keep the computer awake" CLI — holds a system sleep inhibitor indefinitely, for a duration, or while a wrapped command runs.</Description>
+    <PackageTags>keep-awake;caffeinate;awake;sleep-inhibitor;sleep;inhibit;cli;cross-platform;iokit;aot</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageProjectUrl>https://niklasfp.github.io/nightowl/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/niklasfp/nightowl</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- Windows apphost/exe icon, rasterized from site/favicon.svg (build input, not nupkg content). -->
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+    <!-- 128x128 PNG rasterized from site/favicon.svg (nuget.org rejects SVG icons). -->
+    <None Include="icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The CLI exposes no public surface; the test project sees internals. -->
+    <InternalsVisibleTo Include="NightOwl.Tests" />
+  </ItemGroup>
+
+</Project>

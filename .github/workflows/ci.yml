@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**/*.md', 'site/**', '.github/workflows/pages.yml']
+  pull_request:
+    paths-ignore: ['**/*.md', 'site/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: build & test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Check formatting
+        run: dotnet format --verify-no-changes
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --coverage --coverage-output-format cobertura
+
+      - name: Test installer security checks
+        if: runner.os == 'Linux'
+        run: |
+          tests/installers/checksum-verification.sh
+          tests/installers/archive-extraction.sh
+          pwsh -NoProfile -File tests/installers/checksum-verification.ps1
+          pwsh -NoProfile -File tests/installers/archive-extraction.ps1
+
+      - name: Test installer security checks
+        if: runner.os == 'Windows'
+        env:
+          NIGHTOWL_SKIP_SMOKE: '1'
+        shell: powershell
+        run: |
+          .\tests\installers\checksum-verification.ps1
+          .\tests\installers\archive-extraction.ps1

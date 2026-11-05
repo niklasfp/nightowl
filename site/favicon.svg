@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="NightOwl mark">
+  <mask id="crescent-cut">
+    <rect x="0" y="0" width="100" height="100" fill="#fff"/>
+    <circle cx="76" cy="26" r="20" fill="#000"/>
+  </mask>
+  <circle cx="66" cy="34" r="24" fill="#f5b942" mask="url(#crescent-cut)"/>
+  <g fill="#131a2e" stroke="#f5b942" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M20 58 L30 34 L38 60 Z"/>
+    <path d="M64 58 L56 34 L48 60 Z"/>
+    <ellipse cx="42" cy="66" rx="30" ry="27"/>
+  </g>
+  <circle cx="30" cy="62" r="10" fill="#f5b942"/>
+  <circle cx="54" cy="62" r="10" fill="#f5b942"/>
+  <circle cx="30" cy="62" r="4" fill="#131a2e"/>
+  <circle cx="54" cy="62" r="4" fill="#131a2e"/>
+  <path d="M42 70 L37 80 L47 80 Z" fill="#f5b942"/>
+</svg>

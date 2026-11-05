@@ -1,0 +1,135 @@
+name: Owlet
+
+# An "owlet" is a NightOwl that isn't fully grown yet — an automated prerelease build of the tip
+# of `main`, published to GitHub Packages so anyone can try unreleased changes without waiting
+# for (or cutting) a tag. This does NOT publish to nuget.org — that feed cutover lands separately
+# after #44 ships; see #45 for the full design, of which this workflow is the "prep" slice (#48
+# Group A).
+#
+# Cadence: the schedule below is a POLLING interval, not a promise of daily builds. If `main`
+# hasn't moved since the last published owlet, the job exits early and green without publishing
+# — so an idle repo just gets fewer, not empty/duplicate, owlet versions.
+#
+# Skip mechanism: the repo Actions VARIABLE `OWLET_SHA` records the commit the last PUBLISHED
+# owlet was built from (set only on a successful publish, never on a skip). Comparing it to
+# `GITHUB_SHA` is what drives the early-exit above. It's a plain repo variable, so it's
+# inspectable (Settings > Secrets and variables > Actions > Variables) and hand-resettable —
+# clear it (or set it to something other than the current SHA) to force the next scheduled/
+# dispatched run to rebuild even though `main` hasn't moved.
+#
+# Version scheme (no extra tooling — derived from git): take the latest tag (`git describe --tags
+# --abbrev=0`), strip a leading `v` and any `-prerelease` suffix (e.g. `v0.1.0-beta.2` -> base
+# `0.1.0`), then bump to the NEXT PATCH of that base (`0.1.1`). The published version is
+# `<nextpatch>-owlet.<yyyyMMdd>.<run_number>`, e.g. `0.1.1-owlet.20260722.42` — this sorts below
+# the next stable patch per semver precedence, is unique per run, and lets
+# `dotnet tool update --prerelease` track it. No tags at all falls back to the csproj default
+# (`0.1.0` base -> `0.1.1`).
+#
+# Retention: `actions/delete-package-versions` prunes old owlet nupkgs, keeping the newest ~10.
+# `ignore-versions` protects everything that is NOT an owlet build (tagged releases, betas, any
+# future stable versions) via a negative-lookahead regex — only `-owlet.*` versions are ever
+# eligible for deletion.
+on:
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC daily poll — see cadence note above.
+  workflow_dispatch:
+
+jobs:
+  owlet:
+    name: build & publish owlet
+    runs-on: ubuntu-latest
+    # Least privilege, set at the job level (there's only one job, so no workflow-level default
+    # is needed). `contents: read` is for checkout. `actions: write` is for the repo Actions
+    # *variables* API (`gh variable get/set` below), not workflow runs. `packages: write` is for
+    # pushing/pruning the nupkg on GitHub Packages. Job-level `permissions:` fully replaces any
+    # workflow-level default rather than merging with it, so every permission this job needs must
+    # be listed here explicitly.
+    permissions:
+      contents: read
+      packages: write
+      actions: write
+    steps:
+      # fetch-depth: 0 for full history + tags — `git describe` below needs them.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # Compares the last-published owlet's commit (repo variable OWLET_SHA) against this run's
+      # HEAD. A first-ever run has no variable set — `gh variable get` fails, which is treated as
+      # "no prior owlet" (empty), not a job failure. All later steps are gated on this step's
+      # `stale` output instead of an early `exit 0`, so a stale run stays visibly green with every
+      # subsequent step shown (and skipped) rather than the job just stopping mid-list.
+      - name: Check whether main has moved since the last owlet
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          last_sha=$(gh variable get OWLET_SHA --repo "$GITHUB_REPOSITORY" 2>/dev/null || true)
+          if [[ "$last_sha" == "$GITHUB_SHA" ]]; then
+            echo "main unchanged since last owlet ($GITHUB_SHA) — nothing to publish."
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "main has moved (last owlet: ${last_sha:-<none>}, now: $GITHUB_SHA) — building."
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup .NET
+        if: steps.check.outputs.stale != 'true'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      # See the version-scheme header comment above for the full rationale.
+      - name: Derive owlet version
+        id: version
+        if: steps.check.outputs.stale != 'true'
+        run: |
+          set -euo pipefail
+          tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [[ -z "$tag" ]]; then
+            base="0.1.0" # matches the csproj default (src/NightOwl/NightOwl.csproj) pre-first-tag
+          else
+            base="${tag#v}"    # strip leading v
+            base="${base%%-*}" # strip -prerelease suffix, e.g. 0.1.0-beta.2 -> 0.1.0
+          fi
+          IFS='.' read -r major minor patch <<< "$base"
+          next="$major.$minor.$((patch + 1))"
+          version="${next}-owlet.$(date -u +%Y%m%d).${{ github.run_number }}"
+          echo "Derived owlet version: $version (base tag: ${tag:-none})"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Pack
+        if: steps.check.outputs.stale != 'true'
+        run: dotnet pack src/NightOwl -c Release -o nupkg -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Push to GitHub Packages
+        if: steps.check.outputs.stale != 'true'
+        run: >
+          dotnet nuget push "nupkg/*.nupkg"
+          --api-key "${{ secrets.GITHUB_TOKEN }}"
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          --skip-duplicate
+
+      # Only moves the variable once the publish above actually succeeded (a failed or skipped
+      # run never reaches here), so OWLET_SHA always reflects the last commit that truly has a
+      # published owlet.
+      - name: Record published commit
+        if: steps.check.outputs.stale != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh variable set OWLET_SHA --repo "$GITHUB_REPOSITORY" --body "$GITHUB_SHA"
+
+      # Keep the last 10 owlet versions; `ignore-versions` protects everything that does NOT
+      # match `-owlet.` (tagged releases, betas, ...) via a negative lookahead, so this can never
+      # touch anything but owlet prereleases. Deliberately NOT using
+      # `delete-only-pre-release-versions` — that flag has no way to distinguish `-owlet.` from
+      # `-beta.` prereleases and would prune real beta history too.
+      - name: Prune old owlets
+        if: steps.check.outputs.stale != 'true'
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: NightOwl
+          package-type: nuget
+          min-versions-to-keep: 10
+          ignore-versions: '^(?!.*-owlet\.).*$'
