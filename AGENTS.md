@@ -67,10 +67,9 @@ dotnet publish src/NightOwl -r <rid> -c Release -p:PublishAot=true   # native bi
 - `.github/workflows/release.yml` — on `v*` tags, AOT-publish the 5 RIDs and attach to the GitHub
   Release; pack + push the tool nupkg to **GitHub Packages** (`GITHUB_TOKEN`, `packages: write`).
   AOT can't cross-OS but can cross-arch on the same OS (the Windows runner has the VS ARM64 C++
-  tools; macOS only ships `osx-arm64`, native on the arm64 runner). `linux-arm64` is the exception — free GitHub arm64 runners are
-  public-repo only, so it's built natively in an emulated arm64 container
-  (`mcr.microsoft.com/dotnet/sdk:10.0-noble-aot` via `docker/setup-qemu-action`). Reproduce that
-  build locally with `tests/manual/build-linux-arm64.sh` (native, no QEMU, on an arm64 host).
+  tools; macOS only ships `osx-arm64`, native on the arm64 runner). `linux-arm64` builds natively
+  on the `ubuntu-24.04-arm` runner with the same `dotnet publish` path as the other RIDs.
+  Reproduce that build locally with `tests/manual/build-linux-arm64.sh` on an arm64 host.
 - All GitHub Actions are **SHA-pinned** with a `# vX.Y.Z` comment — never floating `@v4` tags.
   Look up a SHA with `gh api repos/{owner}/{repo}/git/ref/tags/{tag} --jq '.object.sha'`.
   The `winget` job similarly pins `wingetcreate.exe` to a `microsoft/winget-create` release

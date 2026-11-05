@@ -32,10 +32,10 @@ permissions:
   packages: write
 
 jobs:
-  # Native AOT can't cross-OS, so each RID builds on its matching OS. Cross-arch (x64<->arm64)
+  # Native AOT can't cross-OS, so each RID builds on its matching OS. Cross-arch (x64->arm64)
   # works on the same OS with the right toolchain: Windows needs the VS ARM64 C++ tools (present
-  # on the runner), Linux arm64 needs a cross-toolchain (installed below). macOS only builds
-  # osx-arm64, which is native on the arm64 macos-latest runner.
+  # on the runner). macOS only builds osx-arm64, which is native on the arm64 macos-latest
+  # runner. linux-arm64 is native on the ubuntu-24.04-arm runner.
   aot:
     name: aot ${{ matrix.rid }}
     runs-on: ${{ matrix.os }}
@@ -47,7 +47,7 @@ jobs:
           - { os: windows-latest, rid: win-arm64 }
           - { os: macos-latest,   rid: osx-arm64 }
           - { os: ubuntu-latest,  rid: linux-x64 }
-          - { os: ubuntu-latest,  rid: linux-arm64 }
+          - { os: ubuntu-24.04-arm, rid: linux-arm64 }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -56,44 +56,18 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # All RIDs except linux-arm64 build natively or with same-OS cross-arch toolchains
-      # (osx-arm64 is native on the arm64 runner; the Windows runner has the VS ARM64 C++ tools).
-      # Binaries are version-stamped from the tag (v1.2.3 -> 1.2.3) so `nightowl --version`
-      # matches the release; non-tag runs keep the csproj default. GITHUB_REF is the tag ref on
-      # both tag pushes and `release` events (see header comment).
+      # Every RID publishes on its own runner. linux-arm64 and osx-arm64 are native; win-arm64
+      # cross-compiles on the Windows runner (VS ARM64 C++ tools). Binaries are version-stamped
+      # from the tag (v1.2.3 -> 1.2.3) so `nightowl --version` matches the release; non-tag runs
+      # keep the csproj default. GITHUB_REF is the tag ref on both tag pushes and `release`
+      # events (see header comment).
       - name: Publish (AOT)
-        if: matrix.rid != 'linux-arm64'
         shell: bash
         run: |
           set -euo pipefail
           version=""
           [[ "$GITHUB_REF" == refs/tags/v* ]] && version="-p:Version=${GITHUB_REF_NAME#v}"
           dotnet publish src/NightOwl -r ${{ matrix.rid }} -c Release -p:PublishAot=true -o publish/${{ matrix.rid }} $version
-
-      # linux-arm64 can't AOT-cross on a free x64 runner (free GitHub arm64 runners are
-      # public-repos only). Build it *natively* inside an emulated arm64 container instead —
-      # no cross-toolchain, just clang from the container's own arm64 packages.
-      # QEMU is required: the bare x64 runner has no qemu-aarch64 binfmt handler, so without
-      # this step `docker run --platform linux/arm64` fails with "exec format error" (verified).
-      - name: Set up QEMU (linux-arm64)
-        if: matrix.rid == 'linux-arm64'
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
-        with:
-          platforms: arm64
-
-      # The `-aot` SDK image ships the Native AOT toolchain (clang + zlib) preinstalled —
-      # Microsoft's recommended image for building Linux AOT tools — so no apt step is needed.
-      - name: Publish (AOT, emulated arm64 container)
-        if: matrix.rid == 'linux-arm64'
-        run: |
-          set -euxo pipefail
-          version=""
-          [[ "$GITHUB_REF" == refs/tags/v* ]] && version="-p:Version=${GITHUB_REF_NAME#v}"
-          docker run --rm --platform linux/arm64 -v "$PWD":/src -w /src \
-            mcr.microsoft.com/dotnet/sdk:10.0-noble-aot \
-            bash -c "dotnet publish src/NightOwl -r linux-arm64 -c Release -p:PublishAot=true -o publish/linux-arm64 $version && \
-                     chmod +x publish/linux-arm64/nightowl"
-          sudo chown -R "$(id -u):$(id -g)" publish/linux-arm64
 
       - name: Package
         shell: bash
