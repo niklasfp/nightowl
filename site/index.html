@@ -63,7 +63,7 @@
         </div>
       </div>
       <p class="tagline" style="margin-top: 0.6rem; font-size: 0.9rem;">
-        <a href="#install">See all install options</a>, including Homebrew and winget.
+        <a href="#install">See all install options</a>.
       </p>
     </div>
   </div>
@@ -107,40 +107,6 @@ curl -fsSL https://raw.githubusercontent.com/niklasfp/nightowl/main/install.sh |
         </div>
         <div class="code-wrap">
           <pre><code>irm https://raw.githubusercontent.com/niklasfp/nightowl/main/install.ps1 | iex</code></pre>
-          <button class="copy-btn" type="button">Copy</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="install-block">
-      <h3>Homebrew</h3>
-      <p>macOS (Apple Silicon), Linux:</p>
-      <div class="terminal">
-        <div class="terminal-titlebar">
-          <span class="terminal-dot red"></span>
-          <span class="terminal-dot yellow"></span>
-          <span class="terminal-dot green"></span>
-        </div>
-        <div class="code-wrap">
-          <pre><code>brew tap niklasfp/nightowl https://github.com/niklasfp/nightowl
-brew install nightowl</code></pre>
-          <button class="copy-btn" type="button">Copy</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="install-block">
-      <h3>winget</h3>
-      <p>Windows — available once the first stable release is accepted into
-      <a href="https://github.com/microsoft/winget-pkgs">winget-pkgs</a>:</p>
-      <div class="terminal">
-        <div class="terminal-titlebar">
-          <span class="terminal-dot red"></span>
-          <span class="terminal-dot yellow"></span>
-          <span class="terminal-dot green"></span>
-        </div>
-        <div class="code-wrap">
-          <pre><code>winget install niklasfp.NightOwl</code></pre>
           <button class="copy-btn" type="button">Copy</button>
         </div>
       </div>
@@ -196,8 +162,6 @@ nightowl --version</code></pre>
           <code>--install-dir</code> again if you overrode it).</li>
         <li><strong>Install script (Windows)</strong> — re-run
           <code>irm https://raw.githubusercontent.com/niklasfp/nightowl/main/install.ps1 | iex</code>.</li>
-        <li><strong>Homebrew</strong> — <code>brew update &amp;&amp; brew upgrade nightowl</code>.</li>
-        <li><strong>winget</strong> — <code>winget upgrade niklasfp.NightOwl</code>.</li>
         <li><strong>Manual download</strong> — download the new archive and replace the
           unpacked binary.</li>
         <li><strong>Portable .NET tool</strong> —
@@ -215,9 +179,6 @@ nightowl --version</code></pre>
         <li><strong>Install script (Windows)</strong> —
           <code>&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/niklasfp/nightowl/main/install.ps1))) -Uninstall</code>
           (also removes the PATH entry it added).</li>
-        <li><strong>Homebrew</strong> — <code>brew uninstall nightowl</code> (optionally
-          <code>brew untap niklasfp/nightowl</code>).</li>
-        <li><strong>winget</strong> — <code>winget uninstall niklasfp.NightOwl</code>.</li>
         <li><strong>Manual download</strong> — delete the unpacked <code>nightowl</code> binary
           (and revert any PATH edit you made yourself).</li>
         <li><strong>Portable .NET tool</strong> — <code>dotnet tool uninstall -g NightOwl</code>.</li>

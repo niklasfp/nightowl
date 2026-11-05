@@ -42,20 +42,6 @@ irm https://raw.githubusercontent.com/niklasfp/nightowl/main/install.ps1 | iex
 Both scripts require the release's `SHA256SUMS.txt` and refuse missing, malformed, or
 mismatched checksums.
 
-**Homebrew** (macOS Apple Silicon, Linux):
-
-```bash
-brew tap niklasfp/nightowl https://github.com/niklasfp/nightowl
-brew install nightowl
-```
-
-**winget** (Windows; available once the first stable release is accepted into
-[winget-pkgs](https://github.com/microsoft/winget-pkgs)):
-
-```powershell
-winget install niklasfp.NightOwl
-```
-
 **Manual download** — no runtime needed — download the archive for your platform from the
 [GitHub Releases](https://github.com/niklasfp/nightowl/releases) page (`win-x64`, `win-arm64`,
 `osx-arm64`, `linux-x64`, `linux-arm64`), unpack, and run `nightowl`.
@@ -84,10 +70,8 @@ Re-run the same install command for the method you used:
    again if you overrode it).
 2. **Install script (Windows)** — re-run
    `irm https://raw.githubusercontent.com/niklasfp/nightowl/main/install.ps1 | iex`.
-3. **Homebrew** — `brew update && brew upgrade nightowl`.
-4. **winget** — `winget upgrade niklasfp.NightOwl`.
-5. **Manual download** — download the new archive and replace the unpacked binary.
-6. **Portable .NET tool** — `dotnet tool update -g NightOwl --add-source github`.
+3. **Manual download** — download the new archive and replace the unpacked binary.
+4. **Portable .NET tool** — `dotnet tool update -g NightOwl --add-source github`.
 
 ### Uninstall
 
@@ -97,11 +81,9 @@ Re-run the same install command for the method you used:
 2. **Install script (Windows)** —
    `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/niklasfp/nightowl/main/install.ps1))) -Uninstall`
    (also removes the PATH entry it added).
-3. **Homebrew** — `brew uninstall nightowl` (optionally `brew untap niklasfp/nightowl`).
-4. **winget** — `winget uninstall niklasfp.NightOwl`.
-5. **Manual download** — delete the unpacked `nightowl` binary (and revert any PATH edit you
+3. **Manual download** — delete the unpacked `nightowl` binary (and revert any PATH edit you
    made yourself).
-6. **Portable .NET tool** — `dotnet tool uninstall -g NightOwl`.
+4. **Portable .NET tool** — `dotnet tool uninstall -g NightOwl`.
 
 ## Usage
 
